@@ -14,11 +14,61 @@ A sophisticated medical document analysis chatbot built with Dify that intellige
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Dify account (Cloud or Self-hosted)
+- Docker and Docker Compose (for local installation)
 - OpenAI API key
+- Minimum 8GB RAM recommended
 - Basic understanding of Dify workflows
 
-### Installation
+### Option 1: Local Dify Installation
+
+#### 1. **Install Dify Locally**
+
+**Using Docker Compose (Recommended):**
+```bash
+# Clone Dify repository
+git clone https://github.com/langgenius/dify.git
+cd dify/docker
+
+# Copy environment configuration
+cp .env.example .env
+
+# Start Dify with Docker Compose
+docker-compose up -d
+
+# Wait for services to start (may take 2-3 minutes)
+# Check status
+docker-compose ps
+```
+
+**Alternative: Using Single Docker Command:**
+```bash
+docker run -d \
+  --name dify \
+  -p 3000:3000 \
+  -v dify-data:/app/data \
+  langgenius/dify:latest
+```
+
+#### 2. **Access Dify Locally**
+- Open your browser and navigate to: `http://localhost:3000`
+- First time setup:
+  - Create admin account
+  - Set your workspace name
+  - Configure initial settings
+
+#### 3. **Configure OpenAI API**
+- Go to `Settings` → `Model Provider`
+- Add OpenAI as provider
+- Enter your OpenAI API key
+- Test connection
+
+### Option 2: Dify Cloud (Easier)
+
+1. **Sign up at**: https://cloud.dify.ai
+2. **Create workspace**: Follow the setup wizard
+3. **Add OpenAI API key**: In Settings → Model Provider
+
+### Import the Medical RAG System
 
 1. **Clone this repository:**
 ```bash
@@ -27,15 +77,82 @@ cd medical-rag-system
 ```
 
 2. **Import to Dify:**
-   - Log into your Dify workspace
-   - Go to "Apps" → "Create App" → "Import"
-   - Select the `medical-rag-workflow.yml` file
-   - Configure your OpenAI API credentials
+   - Navigate to `http://localhost:3000/apps` (local) or your Dify Cloud workspace
+   - Click "Create App" → "Import App"
+   - Select "Import from DSL File"
+   - Upload the `medical-rag-workflow.yml` file
+   - Click "Import"
 
-3. **Configure the Knowledge Base (Optional):**
-   - Create a new knowledge base in Dify
-   - Upload your medical documents
-   - Connect it to the workflow
+3. **Configure the App:**
+   - Go to `Apps` → Click on "Advanced Medical RAG System"
+   - Click "Orchestrate" to view/edit the workflow
+   - Verify OpenAI is selected in LLM nodes
+   - Save changes
+
+4. **Test Your Installation:**
+   - Click "Preview" or "Run"
+   - Upload a sample medical document
+   - Ask: "Summarize this document"
+
+### Accessing Your Apps
+
+**Local Installation:**
+- Dashboard: `http://localhost:3000`
+- Apps List: `http://localhost:3000/apps`
+- Your Medical RAG App: `http://localhost:3000/apps/[app-id]`
+- API Endpoint: `http://localhost:3000/v1/chat-messages`
+
+**Dify Cloud:**
+- Dashboard: `https://cloud.dify.ai`
+- Apps: `https://cloud.dify.ai/apps`
+
+### Troubleshooting Local Installation
+
+**Port Already in Use:**
+```bash
+# Change port in docker-compose.yml or use:
+docker run -p 8080:3000 ... # Uses port 8080 instead
+```
+
+**Docker Memory Issues:**
+```bash
+# Increase Docker memory to at least 4GB
+# Docker Desktop → Settings → Resources → Memory
+```
+
+**Database Connection Issues:**
+```bash
+# Reset Dify installation
+docker-compose down -v
+docker-compose up -d
+```
+
+**View Logs:**
+```bash
+# Check Dify logs
+docker-compose logs -f
+
+# Check specific service
+docker-compose logs -f api
+```
+
+### Configure Knowledge Base (Optional)
+
+1. **Create Knowledge Base:**
+   - Go to `Knowledge` → "Create Knowledge Base"
+   - Name it "Medical Documents"
+   - Select embedding model (text-embedding-3-large)
+
+2. **Upload Documents:**
+   - Click "Add Files"
+   - Upload your medical PDFs/documents
+   - Wait for indexing to complete
+
+3. **Connect to Workflow:**
+   - Open your app in Orchestrate mode
+   - In the Hybrid Retrieval node
+   - Select your knowledge base
+   - Save changes
 
 ## 📋 How It Works
 
