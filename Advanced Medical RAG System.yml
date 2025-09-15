@@ -1,0 +1,632 @@
+app:
+  description: Advanced Medical RAG with Question Classification and Hybrid Retrieval
+  icon: 🏥
+  icon_background: '#E3F2FD'
+  mode: advanced-chat
+  name: Advanced Medical RAG System
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/openai:0.2.4@d7d075ded73152bfd2dd79f047f612aa73e00d1665f2943d9135c80a5d7741fd
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .PDF
+      - .TXT
+      - .DOC
+      - .DOCX
+      - .JPG
+      - .JPEG
+      - .PNG
+      allowed_file_types:
+      - document
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 10
+    opening_statement: Upload medical documents and ask questions about analysis,
+      summarization, or information extraction.
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - Summarize the key medical findings
+    - Extract specific medication dosages mentioned
+    - What are the main diagnoses mentioned?
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: question-classifier
+      id: start-to-classifier
+      source: start_node
+      sourceHandle: source
+      target: question_classifier
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: document-extractor
+      id: classifier-to-extractor-summary
+      source: question_classifier
+      sourceHandle: summarization
+      target: document_extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: document-extractor
+      id: classifier-to-extractor-extraction
+      source: question_classifier
+      sourceHandle: answer_extraction
+      target: document_extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: code
+      id: extractor-to-processor
+      source: document_extractor
+      sourceHandle: source
+      target: advanced_processor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: knowledge-retrieval
+      id: processor-to-retrieval
+      source: advanced_processor
+      sourceHandle: source
+      target: hybrid_retrieval
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: retrieval-to-llm
+      source: hybrid_retrieval
+      sourceHandle: source
+      target: main_llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm-to-answer
+      source: main_llm
+      sourceHandle: source
+      target: final_answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - document
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: Medical Question
+          max_length: 500
+          options: []
+          required: true
+          type: paragraph
+          variable: question
+        - allowed_file_extensions:
+          - .pdf
+          - .txt
+          - .doc
+          - .docx
+          - .jpg
+          - .jpeg
+          - .png
+          allowed_file_types:
+          - document
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: Medical Documents
+          max_length: 10
+          options: []
+          required: true
+          type: file-list
+          variable: files
+      height: 116
+      id: start_node
+      position:
+        x: -800
+        y: 0
+      positionAbsolute:
+        x: -800
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        classes:
+        - id: summarization
+          name: Summarization - Questions asking for summaries, overviews, key points,
+            main findings
+        - id: answer_extraction
+          name: Answer Extraction - Specific questions about medications, procedures,
+            diagnoses, technical details, or any detailed information
+        desc: ''
+        instruction: "Analyze the user's question and classify it into EXACTLY ONE\
+          \ of these two categories:\n\n1. \"summarization\" - SELECT THIS ONLY if\
+          \ the question explicitly asks for:\n   - A summary, overview, or synopsis\
+          \ of the document\n   - Key points, main findings, or conclusions\n   -\
+          \ General overview of the entire document content\n   - Uses words like\
+          \ \"summarize\", \"overview\", \"main points\", \"key findings\", \"brief\"\
+          , \"overall\"\n   - Example: \"Summarize this document\", \"What are the\
+          \ key findings?\", \"Give me an overview\"\n\n2. \"answer_extraction\" -\
+          \ SELECT THIS for ALL OTHER questions including:\n   - Specific medical\
+          \ information (dosages, medications, treatments)\n   - Technical principles\
+          \ or mechanisms\n   - Detailed explanations about any topic\n   - Questions\
+          \ about specific sections or details\n   - Any question that needs specific\
+          \ information extracted\n   - Default choice if uncertain\n   - Example:\
+          \ \"What is the dosage?\", \"Explain the mechanism\", \"What procedures\
+          \ are mentioned?\"\n\nOutput ONLY the category id (either \"summarization\"\
+          \ or \"answer_extraction\"), nothing else.\n"
+        instructions: ''
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: gpt-4
+          provider: langgenius/openai/openai
+        query_variable_selector:
+        - start_node
+        - question
+        selected: false
+        title: Question Classifier
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 252
+      id: question_classifier
+      position:
+        x: -500
+        y: 0
+      positionAbsolute:
+        x: -500
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: true
+        selected: false
+        title: Document Extractor
+        type: document-extractor
+        variable_selector:
+        - start_node
+        - files
+      height: 95
+      id: document_extractor
+      position:
+        x: -200
+        y: 0
+      positionAbsolute:
+        x: -200
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import re \n\ndef main(extracted_text, original_files, user_question,\
+          \ question_category):\n    \"\"\"Enhanced document processing with structure\
+          \ analysis\"\"\"\n    \n    if not isinstance(extracted_text, list) or not\
+          \ extracted_text:\n        return {\n            'processed_chunks': [],\n\
+          \            'processing_metadata': {'status': 'no_content'}\n        }\n\
+          \    \n    # Join extracted text\n    full_text = ' '.join(str(text) for\
+          \ text in extracted_text)\n    \n    # Get file info\n    file_name = 'document'\n\
+          \    if original_files and len(original_files) > 0:\n        file_name =\
+          \ original_files[0].get('name', 'document')\n    \n    # Enhanced document\
+          \ structure analysis\n    document_structure = analyze_document_structure(full_text)\n\
+          \    \n    # Process based on question category - FIXED LOGIC\n    if question_category\
+          \ == 'summarization':\n        chunks = process_for_summary_enhanced(full_text,\
+          \ document_structure, file_name)\n    elif question_category == 'answer_extraction':\n\
+          \        chunks = process_for_extraction_enhanced(full_text, document_structure,\
+          \ file_name)\n    else:\n        # Default to extraction for any unrecognized\
+          \ category\n        chunks = process_for_extraction_enhanced(full_text,\
+          \ document_structure, file_name)\n    \n    return {\n        'processed_chunks':\
+          \ chunks[:12],\n        'processing_metadata': {\n            'category':\
+          \ question_category,\n            'chunk_count': len(chunks),\n        \
+          \    'source_file': file_name,\n            'document_structure': document_structure,\n\
+          \            'has_headings': document_structure['has_clear_structure'],\n\
+          \            'sections_found': document_structure['section_count']\n   \
+          \     }\n    }\n\ndef analyze_document_structure(text):\n    \"\"\"Enhanced\
+          \ document structure analysis\"\"\"\n    import re\n    \n    lines = text.split('\\\
+          n')\n    sections = []\n    tables_found = []\n    figures_found = []\n\
+          \    \n    # Enhanced heading patterns for medical documents\n    heading_patterns\
+          \ = [\n        r'^[A-Z][A-Z\\s]{5,50}$',  # ALL CAPS headings\n        r'^\\\
+          d+\\.\\s+[A-Z][A-Za-z\\s]+$',  # Numbered headings (1. Introduction)\n \
+          \       r'^[A-Z][A-Za-z\\s]+:$',  # Colon-ended headings (Background:)\n\
+          \        r'^(ABSTRACT|INTRODUCTION|BACKGROUND|METHODS|METHODOLOGY|RESULTS|FINDINGS|DISCUSSION|CONCLUSION|REFERENCES)(\\\
+          s|$)',\n        r'^(PATIENT|HISTORY|EXAMINATION|ASSESSMENT|PLAN|DIAGNOSIS|TREATMENT|FOLLOW[-\\\
+          s]?UP)(\\s|$)',\n        r'^(CLINICAL\\s+PRESENTATION|CASE\\s+REPORT|CASE\\\
+          s+STUDY|LITERATURE\\s+REVIEW)(\\s|$)',\n        r'^\\d+\\.\\d+\\s+[A-Z][A-Za-z\\\
+          s]+',  # Subsection numbering (2.1 Methods)\n    ]\n    \n    # Table detection\
+          \ patterns\n    table_patterns = [\n        r'table\\s+\\d+[:\\.]?\\s*[A-Za-z][^.]*\\\
+          .?',\n        r'\\|\\s*[A-Za-z][^|]*\\s*\\|',  # Pipe-separated tables\n\
+          \        r'^[A-Za-z\\s]+\\s+\\d+\\.?\\d*\\s+[A-Za-z\\s]+\\d+\\.?\\d*', \
+          \ # Tabular data\n    ]\n    \n    # Figure/Image detection patterns  \n\
+          \    figure_patterns = [\n        r'figure\\s+\\d+[:\\.]?\\s*[A-Za-z][^.]*\\\
+          .?',\n        r'fig\\.\\s*\\d+[:\\.]?\\s*[A-Za-z][^.]*\\.?',\n        r'image\\\
+          s+\\d+[:\\.]?\\s*[A-Za-z][^.]*\\.?',\n        r'chart\\s+\\d+[:\\.]?\\s*[A-Za-z][^.]*\\\
+          .?',\n    ]\n    \n    current_section = {'heading': 'Document Start', 'content':\
+          \ '', 'line_start': 0, 'type': 'content'}\n    \n    for line_idx, line\
+          \ in enumerate(lines):\n        line_stripped = line.strip()\n        if\
+          \ not line_stripped:\n            continue\n            \n        # Check\
+          \ for headings\n        is_heading = False\n        heading_type = 'general'\n\
+          \        \n        for pattern in heading_patterns:\n            if re.match(pattern,\
+          \ line_stripped, re.IGNORECASE):\n                is_heading = True\n  \
+          \              if any(keyword in line_stripped.upper() for keyword in ['PATIENT',\
+          \ 'CLINICAL', 'MEDICAL']):\n                    heading_type = 'clinical'\n\
+          \                elif any(keyword in line_stripped.upper() for keyword in\
+          \ ['ABSTRACT', 'INTRODUCTION', 'METHODS']):\n                    heading_type\
+          \ = 'research'\n                break\n        \n        # Check for tables\n\
+          \        for pattern in table_patterns:\n            if re.search(pattern,\
+          \ line_stripped, re.IGNORECASE):\n                tables_found.append({\n\
+          \                    'line': line_idx,\n                    'content': line_stripped,\n\
+          \                    'context_start': max(0, line_idx - 2),\n          \
+          \          'context_end': min(len(lines), line_idx + 5)\n              \
+          \  })\n        \n        # Check for figures\n        for pattern in figure_patterns:\n\
+          \            if re.search(pattern, line_stripped, re.IGNORECASE):\n    \
+          \            figures_found.append({\n                    'line': line_idx,\n\
+          \                    'content': line_stripped,\n                    'context_start':\
+          \ max(0, line_idx - 2),\n                    'context_end': min(len(lines),\
+          \ line_idx + 5)\n                })\n        \n        if is_heading and\
+          \ current_section['content'].strip():\n            current_section['line_end']\
+          \ = line_idx\n            sections.append(current_section)\n           \
+          \ current_section = {\n                'heading': line_stripped,\n     \
+          \           'content': '',\n                'line_start': line_idx,\n  \
+          \              'type': heading_type\n            }\n        else:\n    \
+          \        current_section['content'] += line_stripped + ' '\n    \n    #\
+          \ Add final section\n    if current_section['content'].strip():\n      \
+          \  current_section['line_end'] = len(lines)\n        sections.append(current_section)\n\
+          \    \n    return {\n        'sections': sections,\n        'has_clear_structure':\
+          \ len(sections) > 2,\n        'section_count': len(sections),\n        'tables_found':\
+          \ tables_found,\n        'figures_found': figures_found,\n        'document_type':\
+          \ classify_document_type(text, sections),\n        'total_lines': len(lines)\n\
+          \    }\n\ndef classify_document_type(text, sections):\n    \"\"\"Classify\
+          \ the type of medical document\"\"\"\n    text_lower = text.lower()\n  \
+          \  section_headings = [s['heading'].lower() for s in sections]\n    \n \
+          \   # Research paper indicators\n    if any(keyword in text_lower for keyword\
+          \ in ['abstract', 'methodology', 'references', 'bibliography']):\n     \
+          \   return 'research_paper'\n    \n    # Clinical note indicators\n    elif\
+          \ any(keyword in text_lower for keyword in ['patient', 'chief complaint',\
+          \ 'examination', 'assessment']):\n        return 'clinical_note'\n    \n\
+          \    # Procedure manual indicators\n    elif any(keyword in text_lower for\
+          \ keyword in ['procedure', 'protocol', 'steps', 'guidelines']):\n      \
+          \  return 'procedure_manual'\n    \n    # Drug information indicators\n\
+          \    elif any(keyword in text_lower for keyword in ['dosage', 'administration',\
+          \ 'contraindications', 'side effects']):\n        return 'drug_information'\n\
+          \    \n    else:\n        return 'general_medical'\n\ndef process_for_summary_enhanced(text,\
+          \ structure, file_name):\n    \"\"\"Enhanced processing for summarization\
+          \ with structure awareness\"\"\"\n    chunks = []\n    \n    # Use document\
+          \ structure for intelligent summarization\n    if structure['has_clear_structure']:\n\
+          \        for section in structure['sections']:\n            if len(section['content'])\
+          \ > 150:  # Meaningful sections only\n                summary_score = 1.2\n\
+          \                \n                # Boost important sections for summarization\n\
+          \                important_keywords = ['conclusion', 'results', 'findings',\
+          \ 'summary', 'abstract']\n                if any(keyword in section['heading'].lower()\
+          \ for keyword in important_keywords):\n                    summary_score\
+          \ = 2.0\n                elif any(keyword in section['heading'].lower()\
+          \ for keyword in ['introduction', 'background']):\n                    summary_score\
+          \ = 1.7\n                \n                chunks.append({\n           \
+          \         'content': section['content'],\n                    'metadata':\
+          \ {\n                        'type': 'structured_summary',\n           \
+          \             'heading': section['heading'],\n                        'section_type':\
+          \ section.get('type', 'general'),\n                        'word_count':\
+          \ len(section['content'].split()),\n                        'relevance_score':\
+          \ summary_score,\n                        'source': file_name\n        \
+          \            }\n                })\n    else:\n        # Fall back to intelligent\
+          \ chunking for unstructured documents\n        chunks = smart_summary_chunking(text,\
+          \ file_name, structure['document_type'])\n    \n    return sorted(chunks,\
+          \ key=lambda x: x['metadata']['relevance_score'], reverse=True)\n\ndef process_for_extraction_enhanced(text,\
+          \ structure, file_name):\n    \"\"\"Enhanced processing for specific answer\
+          \ extraction\"\"\"\n    chunks = []\n    \n    # Create focused chunks with\
+          \ medical relevance\n    chunk_size = 900  # Slightly larger for better\
+          \ context\n    overlap = 120\n    \n    sentences = re.split(r'(?<=[.!?])\\\
+          s+', text)\n    current_chunk = \"\"\n    chunk_index = 0\n    \n    for\
+          \ sentence in sentences:\n        if len(current_chunk) + len(sentence)\
+          \ <= chunk_size:\n            current_chunk += sentence + \" \"\n      \
+          \  else:\n            if current_chunk.strip():\n                relevance\
+          \ = calculate_enhanced_medical_relevance(current_chunk, structure['document_type'])\n\
+          \                \n                chunks.append({\n                   \
+          \ 'content': current_chunk.strip(),\n                    'metadata': {\n\
+          \                        'type': 'extraction_chunk',\n                 \
+          \       'chunk_index': chunk_index,\n                        'word_count':\
+          \ len(current_chunk.split()),\n                        'relevance_score':\
+          \ relevance,\n                        'source': file_name,\n           \
+          \             'document_type': structure['document_type'],\n           \
+          \             'has_medical_data': relevance > 1.5\n                    }\n\
+          \                })\n                chunk_index += 1\n            \n  \
+          \          # Sliding window with overlap\n            overlap_text = current_chunk[-overlap:]\
+          \ if len(current_chunk) > overlap else current_chunk\n            current_chunk\
+          \ = overlap_text + sentence + \" \"\n    \n    # Add final chunk\n    if\
+          \ current_chunk.strip():\n        relevance = calculate_enhanced_medical_relevance(current_chunk,\
+          \ structure['document_type'])\n        chunks.append({\n            'content':\
+          \ current_chunk.strip(),\n            'metadata': {\n                'type':\
+          \ 'extraction_chunk',\n                'chunk_index': chunk_index,\n   \
+          \             'word_count': len(current_chunk.split()),\n              \
+          \  'relevance_score': relevance,\n                'source': file_name,\n\
+          \                'document_type': structure['document_type'],\n        \
+          \        'has_medical_data': relevance > 1.5\n            }\n        })\n\
+          \    \n    return sorted(chunks, key=lambda x: x['metadata']['relevance_score'],\
+          \ reverse=True)\n\ndef smart_summary_chunking(text, file_name, doc_type):\n\
+          \    \"\"\"Intelligent chunking for summarization of unstructured documents\"\
+          \"\"\n    import re\n    \n    chunks = []\n    chunk_size = 1800  # Larger\
+          \ chunks for better summarization\n    sentences = re.split(r'(?<=[.!?])\\\
+          s+', text)\n    current_chunk = \"\"\n    \n    for sentence in sentences:\n\
+          \        if len(current_chunk) + len(sentence) <= chunk_size:\n        \
+          \    current_chunk += sentence + \" \"\n        else:\n            if current_chunk.strip():\n\
+          \                chunks.append({\n                    'content': current_chunk.strip(),\n\
+          \                    'metadata': {\n                        'type': 'summary_chunk',\n\
+          \                        'word_count': len(current_chunk.split()),\n   \
+          \                     'relevance_score': 1.0,\n                        'source':\
+          \ file_name,\n                        'document_type': doc_type\n      \
+          \              }\n                })\n            current_chunk = sentence\
+          \ + \" \"\n    \n    if current_chunk.strip():\n        chunks.append({\n\
+          \            'content': current_chunk.strip(),\n            'metadata':\
+          \ {\n                'type': 'summary_chunk',\n                'word_count':\
+          \ len(current_chunk.split()),\n                'relevance_score': 1.0,\n\
+          \                'source': file_name,\n                'document_type':\
+          \ doc_type\n            }\n        })\n    \n    return chunks\n\ndef calculate_enhanced_medical_relevance(text,\
+          \ document_type):\n    \"\"\"Enhanced medical relevance calculation with\
+          \ document type awareness\"\"\"\n    import re\n    \n    base_score = 1.0\n\
+          \    text_lower = text.lower()\n    \n    # Base medical terms\n    medical_terms\
+          \ = {\n        'basic': ['patient', 'diagnosis', 'treatment', 'medication',\
+          \ 'procedure', 'clinical', 'medical'],\n        'clinical': ['symptoms',\
+          \ 'condition', 'disease', 'disorder', 'syndrome', 'pathology'],\n      \
+          \  'pharmacological': ['dosage', 'administration', 'contraindication', 'side\
+          \ effect', 'adverse'],\n        'technical': ['imaging', 'radiology', 'laboratory',\
+          \ 'test', 'analysis', 'measurement']\n    }\n    \n    # Calculate base\
+          \ medical score\n    for category, terms in medical_terms.items():\n   \
+          \     for term in terms:\n            if term in text_lower:\n         \
+          \       if category == 'basic':\n                    base_score += 0.1\n\
+          \                elif category == 'clinical':\n                    base_score\
+          \ += 0.15\n                elif category == 'pharmacological':\n       \
+          \             base_score += 0.2\n                elif category == 'technical':\n\
+          \                    base_score += 0.12\n    \n    # Document type specific\
+          \ boosts\n    if document_type == 'clinical_note':\n        clinical_indicators\
+          \ = ['chief complaint', 'physical exam', 'assessment', 'plan']\n       \
+          \ for indicator in clinical_indicators:\n            if indicator in text_lower:\n\
+          \                base_score += 0.3\n    \n    elif document_type == 'drug_information':\n\
+          \        drug_indicators = ['mg', 'ml', 'mcg', 'units', 'daily', 'twice',\
+          \ 'three times']\n        for indicator in drug_indicators:\n          \
+          \  if indicator in text_lower:\n                base_score += 0.25\n   \
+          \ \n    # Numerical medical data boost\n    if re.search(r'\\d+\\s*(mg|ml|mcg|units|mm|cm|kg|lbs|bpm|°[CF])',\
+          \ text):\n        base_score += 0.4\n    \n    # Specific medical values\n\
+          \    if re.search(r'\\d+/\\d+\\s*(mmHg|torr)', text):  # Blood pressure\n\
+          \        base_score += 0.3\n    \n    return min(base_score, 3.5)  # Cap\
+          \ at 3.5"
+        code_language: python3
+        desc: ''
+        outputs:
+          processed_chunks:
+            children: null
+            type: array[object]
+          processing_metadata:
+            children: null
+            type: object
+        selected: false
+        title: Advanced Processor
+        type: code
+        variables:
+        - value_selector:
+          - document_extractor
+          - text
+          value_type: array[string]
+          variable: extracted_text
+        - value_selector:
+          - start_node
+          - files
+          value_type: array[file]
+          variable: original_files
+        - value_selector:
+          - start_node
+          - question
+          value_type: string
+          variable: user_question
+        - value_selector:
+          - question_classifier
+          - class_name
+          value_type: string
+          variable: question_category
+      height: 54
+      id: advanced_processor
+      position:
+        x: 100
+        y: 0
+      positionAbsolute:
+        x: 100
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - QR0hzLK0+3z6t66BEk8cdz2eYVbQe4ihPOyFGY/ku+ZXX7aaETF4bmn+7cLkZcZS
+        desc: ''
+        multiple_retrieval_config:
+          reranking_enable: true
+          reranking_mode: weighted_score
+          reranking_model:
+            model: ''
+            provider: ''
+          score_threshold: 0.6
+          top_k: 6
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            vector_setting:
+              embedding_model_name: text-embedding-3-large
+              embedding_provider_name: langgenius/openai/openai
+              vector_weight: 0.7
+        query_variable_selector:
+        - start_node
+        - question
+        retrieval_mode: multiple
+        selected: false
+        title: Hybrid Retrieval
+        type: knowledge-retrieval
+      height: 92
+      id: hybrid_retrieval
+      position:
+        x: 400
+        y: 0
+      positionAbsolute:
+        x: 400
+        y: 0
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - advanced_processor
+          - processed_chunks
+        desc: ''
+        model:
+          completion_params:
+            max_tokens: 4000
+            temperature: 0.1
+          mode: chat
+          name: gpt-4
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: main_prompt
+          role: system
+          text: "You are an advanced medical document analysis expert with STRICT\
+            \ instruction-following capabilities.\n\nCurrent Question Category: {{#question_classifier.class_name#}}\n\
+            \nCRITICAL COMPLIANCE RULES - YOU MUST FOLLOW THESE EXACTLY:\n\n1. **WORD/CHARACTER\
+            \ LIMITS ARE ABSOLUTE**:\n   - If user asks for \"3 words\", give EXACTLY\
+            \ 3 words - no more, no less\n   - If user asks for \"10 words\", give\
+            \ EXACTLY 10 words\n   - If user asks for \"one sentence\", give EXACTLY\
+            \ one sentence\n   - Count your words before responding\n\n2. **FORMAT\
+            \ REQUIREMENTS ARE MANDATORY**:\n   - If user asks for bullet points,\
+            \ use bullet points\n   - If user asks for a list, provide a list\n  \
+            \ - If user asks for a specific format, use that exact format\n\n3. **SCOPE\
+            \ RESTRICTIONS**:\n   - Each question is independent - do not reference\
+            \ previous questions\n   - Answer ONLY from the provided document content\n\
+            \   - If the user's constraint makes a complete answer impossible, do\
+            \ your best within the constraint\n\n4. **PRIORITY ORDER**:\n   - User's\
+            \ format/length requirements > Completeness of answer\n   - It's better\
+            \ to give 3 words when asked for 3 words than to give a complete answer\
+            \ in 50 words\n\nDocument Context: {{#context#}}\n\nAdditional Retrieved\
+            \ Information: {{#hybrid_retrieval.result#}}\n\nFINAL REMINDER: Check\
+            \ your response before sending - does it EXACTLY match what the user requested?\
+            \ If they asked for 3 words and you're about to send more, STOP and give\
+            \ only 3 words.\n"
+        - id: user_question
+          role: user
+          text: '{{#start_node.question#}}'
+        selected: false
+        title: Main LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: main_llm
+      position:
+        x: 700
+        y: 0
+      positionAbsolute:
+        x: 700
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#main_llm.text#}}'
+        desc: ''
+        selected: false
+        title: Final Answer
+        type: answer
+        variables: []
+      height: 105
+      id: final_answer
+      position:
+        x: 1000
+        y: 0
+      positionAbsolute:
+        x: 1000
+        y: 0
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 614.1534782354277
+      y: 342.08605847358285
+      zoom: 0.6745512671698506
